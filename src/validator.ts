@@ -18,7 +18,7 @@ const validators: Record<keyof RulesType, Validator> = {
 
     email: {
         message: 'Field must be a valid email address',
-        validate: (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+        validate: (val: string) => /^(?!\.)(?!.*\.\.)([A-Z0-9_+-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i.test(val),
     },
 
     eq: {
