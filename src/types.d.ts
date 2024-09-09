@@ -1,6 +1,6 @@
 export type Validator = {
   message: (param?: string) => string;
-  validate: ((val: string) => boolean) | ((val: string, option: string) => boolean);
+  validate: (val: string, option?: string) => boolean;
 };
 
 export type RulesOptions = {
