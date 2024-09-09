@@ -1,4 +1,4 @@
-import { RulesOptions, RulesType, Validator } from './types';
+import type { RulesOptions, RulesType, Validator } from './types';
 
 function validateNumeric(value: string): boolean {
     return /^\d+$/.test(value);
@@ -12,34 +12,37 @@ function validateFunctionParam(val: string, option: string) {
 
 const validators: Record<keyof RulesType, Validator> = {
     'alpha-numeric': {
-        message: 'Field must contain letters and numbers',
+        message: () => 'Field must contain letters and numbers',
         validate: (val: string) => /^(?=.*[0-9])(?=.*[a-zA-Z])([a-zA-Z0-9]+)$/.test(val),
     },
 
     email: {
-        message: 'Field must be a valid email address',
-        validate: (val: string) => /^(?!\.)(?!.*\.\.)([A-Z0-9_+-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i.test(val),
+        message: () => 'Field must be a valid email address',
+        validate: (val: string) =>
+            /^(?!\.)(?!.*\.\.)([A-Z0-9_+-\.]*)[A-Z0-9_+-]@([A-Z0-9][A-Z0-9\-]*\.)+[A-Z]{2,}$/i.test(
+                val,
+            ),
     },
 
     eq: {
-        message: 'Field should be ##REPLACE## characters',
+        message: (option: string) => `Field should be ${option} characters`,
         validate: (val: string, option: string) => {
             validateFunctionParam('eq', option);
-            return value.length === Number(option);
+            return val.length === Number(option);
         },
     },
 
     float: {
-        message: 'Field must be numeric with ##REPLACE## decimals',
+        message: (option: string) => `Field must be numeric with ${option} decimals`,
         validate: (val: string, option: string) => {
-            validateFunctionParam('float', string);
-            const regex = '^\\d+(\\.\\d{' + string + '})$';
+            validateFunctionParam('float', option);
+            const regex = '^\\d+(\\.\\d{' + option + '})$';
             return new RegExp(regex).test(val);
         },
     },
 
     gt: {
-        message: 'Field must be greater than ##REPLACE##',
+        message: (option: string) => `Field must be greater than ${option}`,
         validate: (val: string, option: string) => {
             validateFunctionParam('gt', option);
             return Number(val) > Number(option);
@@ -47,22 +50,25 @@ const validators: Record<keyof RulesType, Validator> = {
     },
 
     'has-int': {
-        message: 'Field must contain a number',
+        message: () => 'Field must contain a number',
         validate: (val: string) => /[0-9]+/g.test(val),
     },
 
     in: {
-        message: 'Field must contain one of the following: `##REPLACE##`',
-        validate: (val: string, option: string) => option.split(',').includes(val),
+        message: (option: string) => `Field must contain one of the following: '${option}'`,
+        validate: (val: string, option: string) => {
+            validateFunctionParam('in', option);
+            option.split(',').includes(val);
+        },
     },
 
     lower: {
-        message: 'Field must contain a lowercase letter',
+        message: () => 'Field must contain a lowercase letter',
         validate: (val: string) => /[a-z]/.test(val),
     },
 
     lt: {
-        message: 'Field must be less than ##REPLACE##',
+        message: (option: string) => `Field must be less than ${option}`,
         validate: (val: string, option: string) => {
             validateFunctionParam('lt', option);
             return Number(val) < Number(option);
@@ -70,39 +76,46 @@ const validators: Record<keyof RulesType, Validator> = {
     },
 
     match: {
-        message: 'Field must match with `##REPLACE##`',
-        validate: (val: string, option: string) => {
-            if (value.includes('|')) {
-                return matchingValue === value.split('|')[1];
+        message: (option: string) => `Field must match with '${option.split('|')?.[0]}' field`,
+        validate: (val: string, matchingValue: string) => {
+            if (matchingValue.includes('|')) {
+                return val === matchingValue.split('|')[1];
             }
 
-            return matchingValue === value;
+            return matchingValue === val;
         },
     },
 
     max: {
-        message: 'Field can not exceed ##REPLACE## characters',
+        message: (option: string) => `Field can not exceed ${option} characters`,
         validate: (val: string, option: string) => {
             validateFunctionParam('max', option);
             return val.length <= Number(option);
-        }
+        },
     },
 
     min: {
-        message: 'Field should be ##REPLACE## or more characters',
+        message: (option: string) => `Field should be ${option} or more characters`,
         validate: (val: string, option: string) => {
             validateFunctionParam('min', option);
             return val.length >= Number(option);
         },
     },
 
+    mixedCase: {
+        message: () => 'Field must contain both uppercase and lowercase letters',
+        validate: (val: string) => {
+            return validators.lower?.validate(val) && validators.upper?.validate(val);
+        },
+    },
+
     numeric: {
-        message: 'Field can only contain numbers',
-        validate: (val) => validateNumeric(val),
+        message: () => 'Field can only contain numbers',
+        validate: (val: string) => validateNumeric(val),
     },
 
     phone: {
-        message: 'Field must be a valid phone number',
+        message: () => 'Field must be a valid phone number',
         validate: (val: string) => {
             const regex = '^\\+1(\\d{10})$';
             return new RegExp(regex).test(val);
@@ -110,19 +123,25 @@ const validators: Record<keyof RulesType, Validator> = {
     },
 
     required: {
-        message: 'Field is required',
+        message: () => 'Field is required',
         validate: (val: string) => !!val.trim(),
     },
 
+    symbol: {
+        message: () => 'Field must contain a special character',
+        validate: (val: string) => /[!@#$%^&*)(+=._-]+/g.test(val),
+    },
+
     upper: {
-        message: 'Field must contain an uppercase letter',
+        message: () => 'Field must contain an uppercase letter',
         validate: (val: string) => /[A-Z]/.test(val),
     },
 
     uuid: {
-        message: 'Field must be a valid UUID',
+        message: () => 'Field must be a valid UUID',
         validate: (val: string) => {
-            const regex = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$';
+            const regex =
+                '^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$';
             return new RegExp(regex, 'i').test(val);
         },
     },
@@ -130,32 +149,79 @@ const validators: Record<keyof RulesType, Validator> = {
 
 const getValidatorAndParam = (val: string): string[] => val.split(':');
 
-const getErrorMessage = (name: string, options?: RulesOptions) => {
-    if (options && options.message.trim()) {
+const getErrorMessage = (name: string, param?: string, options?: RulesOptions) => {
+    if (options && options?.message?.trim()) {
         return options.message;
     }
 
-    return validators[name].message;
+    return validators[name as keyof RulesType].message(param);
 };
 
-export const validateInput = (t: string, val: string, options?: RulesOptions) => {
-    const result = { valid: true, message: '' };
-    const [validatorName, param] = getValidatorAndParam(t);
+const getRule = (key: string, value: string | RulesOptions) => {
+    const isNumeric = validateNumeric(key);
 
-    if (!validators[validatorName]) {
+    if (isNumeric) {
+        return { rule: value as string, options: undefined };
+    }
+
+    return { rule: key as string, options: value as RulesOptions };
+};
+
+const validateInput = (rule: string, val: string, options?: RulesOptions) => {
+    const result = { valid: true, message: '' };
+    const [validatorName, param] = getValidatorAndParam(rule);
+
+    if (!validators[validatorName as keyof RulesType]) {
         throw new Error(`Function for type, ${validatorName}, does not exist`);
     }
 
-    if (!validators[validatorName].validate) {
+    if (!validators[validatorName as keyof RulesType].validate) {
         throw new Error(`Function for type, ${validatorName}, is missing`);
     }
 
-    const inputValid = param ? validators[validatorName].validate(val, param) : validators[validatorName].validate(value);
+    const inputValid = param
+        ? validators[validatorName as keyof RulesType].validate(val, param)
+        : validators[validatorName as keyof RulesType].validate(val);
 
     if (!inputValid) {
         result.valid = false;
-        result.message = getErrorMessage(validatorName, options);
+        result.message = getErrorMessage(validatorName, param, options);
     }
 
     return result;
 };
+
+const validateRules = (inputValue: string, rules: RulesType | Array<keyof RulesType>) => {
+    let tempValid = true;
+    let error = null;
+
+    if (
+        !Object.values(rules).includes('required') &&
+        !Object.keys(rules).includes('required') &&
+        (!inputValue || !inputValue.toString().trim().length)
+    ) {
+        return { error, valid: tempValid };
+    }
+
+    for (const [key, value] of Object.entries(rules)) {
+        const { rule, options } = getRule(key, value);
+        const { message, valid } = validateInput(rule, inputValue, options);
+
+        if (!tempValid) {
+            continue;
+        }
+
+        if (!valid && tempValid) {
+            error = message;
+            tempValid = false;
+            continue;
+        }
+
+        error = null;
+        tempValid = true;
+    }
+
+    return { error, valid: tempValid };
+};
+
+export { validateInput, validateRules };
