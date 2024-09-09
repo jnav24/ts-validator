@@ -8,6 +8,12 @@ export type RulesOptions = {
   pattern?: string;
 };
 
+type RemoveColon<T> = {
+  [K in keyof T as K extends `${infer Prefix}:` ? Prefix : K]: T[K];
+};
+
+export type ValidatorType = RemoveColon<RulesType>;
+
 export type RulesType = {
   "alpha-numeric"?: RulesOptions;
   email?: RulesOptions;
